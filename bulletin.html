@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#020817" />
+  <title>Mon Bulletin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #020817; color: #e2e8f0; font-family: 'DM Sans', 'Segoe UI', sans-serif; min-height: 100vh; }
+
+    @keyframes fadeSlideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes slideTab    { from { opacity:0; transform:translateX(10px);} to { opacity:1; transform:translateX(0); } }
+    @keyframes popIn       { from { opacity:0; transform:scale(0.75);     } to { opacity:1; transform:scale(1);    } }
+    @keyframes barGrow     { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+
+    .card-enter { animation: fadeSlideUp 0.42s cubic-bezier(.4,0,.2,1) both; }
+    .tab-enter  { animation: slideTab   0.32s cubic-bezier(.4,0,.2,1) both; }
+    .pop-in     { animation: popIn      0.45s cubic-bezier(.4,0,.2,1) both; }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type=number] { -moz-appearance: textfield; }
+    input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 2px #6366f122 !important; outline: none; }
+    button { cursor: pointer; }
+    button:hover { opacity: 0.88; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0a1120; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+
+    #sticky-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      transform: translateY(-100%);
+      transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+      background: rgba(8,15,30,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(99,102,241,0.2);
+      padding: 10px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    #sticky-bar.visible { transform: translateY(0); }
+    #sticky-bar-label { font-size: 11px; color: #64748b; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+    #sticky-bar-track { flex: 1; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; position: relative; }
+    #sticky-bar-fill  { height: 100%; border-radius: 3px; width: 0%; transition: width 0.6s cubic-bezier(.4,0,.2,1), background 0.4s; }
+    #sticky-bar-marker { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(245,158,11,0.6); border-radius: 1px; }
+    #sticky-bar-value { font-size: 16px; font-weight: 900; font-family: 'Syne', sans-serif; white-space: nowrap; min-width: 48px; text-align: right; }
+
+    .wrap { max-width: 680px; margin: 0 auto; padding: 24px 16px 56px; }
+
+    .section-card { background: #0f172a; border-radius: 12px; padding: 14px 16px; border: 1px solid #1e293b; }
+    .lbl { font-size: 10px; color: #64748b; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+
+    .inp {
+      width: 100%; padding: 9px 12px; background: #020817;
+      border: 1px solid #1e293b; border-radius: 8px; color: #e2e8f0;
+      font-size: 14px; font-weight: 600; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary {
+      width: 100%; padding: 11px 0;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none; border-radius: 10px; color: #fff;
+      font-weight: 700; font-size: 13px; letter-spacing: 0.5px;
+      font-family: inherit; transition: opacity 0.2s;
+    }
+
+    /* Tabs */
+    #tabs-bar { display: flex; gap: 4px; margin-bottom: 16px; background: #080f1e; border-radius: 12px; padding: 4px; border: 1px solid #1a2540; }
+    .tab-btn {
+      flex: 1; padding: 9px 2px; border-radius: 9px; border: none;
+      font-size: 11px; font-weight: 700; font-family: inherit;
+      background: transparent; color: #475569;
+      transition: all 0.22s cubic-bezier(.4,0,.2,1);
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; transform: scale(1.04);
+      box-shadow: 0 2px 14px rgba(99,102,241,0.27);
+    }
+
+    /* Notes cards */
+    .matiere-card {
+      border-radius: 12px; padding: 14px 16px;
+      background: #0f172a; border: 1px solid #1e293b;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      margin-bottom: 8px;
+    }
+    .matiere-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .matiere-info { display: flex; align-items: center; gap: 10px; }
+    .matiere-emoji { font-size: 20px; }
+    .matiere-nom { font-size: 13px; font-weight: 700; color: #e2e8f0; }
+    .matiere-coef { font-size: 10px; color: #475569; }
+    .matiere-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .toggle-btn { font-size: 9px; padding: 3px 9px; border-radius: 20px; border: 1px solid #1e293b; background: transparent; color: #475569; font-weight: 600; font-family: inherit; }
+    .matiere-moy { font-size: 22px; font-weight: 800; font-family: 'Syne', sans-serif; text-align: right; min-width: 44px; }
+    .matiere-pond { font-size: 10px; color: #475569; text-align: right; font-weight: 600; }
+    .notes-inputs { display: flex; gap: 8px; }
+    .note-field { flex: 1; }
+    .note-label { font-size: 10px; color: #475569; margin-bottom: 4px; font-weight: 600; }
+
+    /* Bar chart */
+    #chart-wrap { display: flex; align-items: flex-end; gap: 5px; height: 170px; padding: 0 2px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .bar-val { font-size: 9px; color: #94a3b8; font-weight: 700; min-height: 13px; }
+    .bar-container { position: relative; width: 100%; flex: 1; display: flex; align-items: flex-end; }
+    .bar-objectif-line { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(245,158,11,0.35); z-index: 2; }
+    .bar-fill { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.55s cubic-bezier(.4,0,.2,1); }
+    .bar-emoji { font-size: 10px; }
+
+    /* Contrib bars */
+    .contrib-bar-track { height: 5px; background: #1e293b; border-radius: 3px; overflow: hidden; }
+    .contrib-bar-fill  { height: 100%; border-radius: 3px; width: 0%; transition: width 0.65s cubic-bezier(.4,0,.2,1); }
+
+    /* Points forts/faibles */
+    .pf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Historique */
+    .histo-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .histo-card { display: flex; justify-content: space-between; align-items: center; background: #0f172a; border-radius: 8px; padding: 10px 14px; border: 1px solid #1e293b; margin-bottom: 8px; }
+    .histo-evol { display: flex; align-items: flex-end; gap: 8px; height: 90px; }
+    .histo-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+    /* Moyenne card */
+    #moy-card {
+      background: linear-gradient(135deg, #0d1526, #1a1040);
+      border-radius: 18px; padding: 22px 24px; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: border-color 0.4s, box-shadow 0.4s;
+    }
+    #moy-value { font-size: 54px; font-weight: 900; font-family: 'Syne', sans-serif; line-height: 1; margin-top: 6px; transition: color 0.4s; }
+    #moy-mention { font-size: 12px; font-weight: 600; margin-top: 4px; transition: color 0.4s; }
+    #objectif-display { font-size: 20px; font-weight: 800; font-family: 'Syne', sans-serif; color: #f59e0b; min-width: 32px; }
+    #objectif-status { font-size: 11px; margin-top: 7px; font-weight: 600; }
+
+    input[type=range] { accent-color: #f59e0b; }
+
+    /* Onglet content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    @media (max-width: 400px) {
+      .pf-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Barre sticky -->
+<div id="sticky-bar">
+  <div id="sticky-bar-label">Moyenne</div>
+  <div id="sticky-bar-track">
+    <div id="sticky-bar-fill"></div>
+    <div id="sticky-bar-marker"></div>
+  </div>
+  <div id="sticky-bar-value">—</div>
+</div>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="card-enter" style="text-align:center; margin-bottom:26px;">
+    <div style="font-size:10px; color:#6366f1; letter-spacing:4px; font-weight:700; text-transform:uppercase; margin-bottom:8px;">Calculateur de Bulletin</div>
+    <div style="font-size:36px; font-weight:900; letter-spacing:-1px; font-family:'Syne',sans-serif; background:linear-gradient(135deg,#e2e8f0 30%,#6366f1); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Mon Bulletin</div>
+    <div style="font-size:12px; color:#334155; margin-top:4px;">9 matières · 28 coefficients</div>
+  </div>
+
+  <!-- Carte moyenne générale -->
+  <div id="moy-card" class="card-enter" style="animation-delay:70ms; border:1px solid rgba(100,116,139,0.27);">
+    <div>
+      <div style="font-size:10px; color:#64748b; letter-spacing:2px; font-weight:700; text-transform:uppercase;">Moyenne Générale</div>
+      <div id="moy-value" style="color:#64748b;">—</div>
+      <div id="moy-mention" style="color:#64748b;">—</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:10px; color:#475569; margin-bottom:8px; letter-spacing:1px;">OBJECTIF</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <input type="range" id="objectif-range" min="8" max="20" step="0.5" value="12" style="width:80px;" />
+        <div id="objectif-display">12</div>
+      </div>
+      <div id="objectif-status" style="color:#64748b;"></div>
+    </div>
+  </div>
+
+  <!-- Onglets -->
+  <div id="tabs-bar">
+    <button class="tab-btn active" data-tab="notes">📝 Notes</button>
+    <button class="tab-btn" data-tab="analyse">📊 Analyse</button>
+    <button class="tab-btn" data-tab="historique">🕐 Historique</button>
+    <button class="tab-btn" data-tab="export">💾 Export</button>
+  </div>
+
+  <!-- ═══ NOTES ═══ -->
+  <div id="tab-notes" class="tab-content active tab-enter"></div>
+
+  <!-- ═══ ANALYSE ═══ -->
+  <div id="tab-analyse" class="tab-content">
+    <div class="section-card card-enter" style="margin-bottom:14px;">
+      <div class="lbl">Graphique des notes</div>
+      <div id="chart-wrap"></div>
+      <div style="display:flex; justify-content:center; margin-top:8px;">
+        <div style="font-size:10px; color:#475569; display:flex; align-items:center; gap:6px;">
+          <div style="width:18px; border-top:1px dashed rgba(245,158,11,0.4);"></div>
+          <span id="chart-obj-label">Objectif (12/20)</span>
+        </div>
+      </div>
+    </div>
+    <div class="section-card card-enter" style="margin-bottom:14px; animation-delay:60ms;">
+      <div class="lbl">Contribution à la moyenne</div>
+      <div id="contrib-list"></div>
+    </div>
+    <div class="pf-grid" style="margin-bottom:14px;">
+      <div class="section-card" style="border-color:rgba(16,185,129,0.2);">
+        <div style="font-size:10px; color:#10b981; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;">💪 Points forts</div>
+        <div id="points-forts"></div>
+      </div>
+      <div class="section-card" style="border-color:rgba(239,68,68,0.2);">
+        <div style="font-size:10px; color:#ef4444; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;">⚠️ Points faibles</div>
+        <div id="points-faibles"></div>
+      </div>
+    </div>
+    <button id="btn-copy" class="btn-primary" style="background:linear-gradient(135deg,#1e293b,#334155); border:1px solid #334155;">📋 Exporter le résumé texte</button>
+  </div>
+
+  <!-- ═══ HISTORIQUE ═══ -->
+  <div id="tab-historique" class="tab-content">
+    <div class="section-card tab-enter" style="margin-bottom:16px;">
+      <div class="lbl">Ajouter un trimestre passé</div>
+      <input class="inp" id="histo-label" placeholder="Ex : Trimestre 1 — 2024" style="margin-bottom:12px;" />
+      <div class="histo-grid" id="histo-inputs"></div>
+      <button class="btn-primary" id="btn-add-histo" style="margin-top:14px;">＋ Ajouter ce trimestre</button>
+    </div>
+    <div id="histo-list"></div>
+    <div id="histo-chart-section" style="display:none;">
+      <div class="lbl" style="margin-top:16px;">Évolution des moyennes</div>
+      <div id="histo-evol" class="histo-evol"></div>
+    </div>
+  </div>
+
+  <!-- ═══ EXPORT ═══ -->
+  <div id="tab-export" class="tab-content tab-enter">
+    <div class="section-card" style="margin-bottom:14px;">
+      <div style="font-size:10px; color:#6366f1; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px;">Comment ça marche ?</div>
+      <div style="font-size:13px; color:#64748b; line-height:1.8;">
+        1. Saisis le nom de l'élève ci-dessous<br/>
+        2. Clique sur <strong style="color:#e2e8f0;">"Télécharger le bulletin JSON"</strong><br/>
+        3. Envoie le fichier à Claude dans le chat<br/>
+        4. Claude analysera toutes tes données 🎯
+      </div>
+    </div>
+    <div class="section-card" style="margin-bottom:14px;">
+      <div class="lbl">Nom de l'élève</div>
+      <input class="inp" id="export-nom" placeholder="Ex : Moussa Diallo" />
+    </div>
+    <div class="section-card" style="margin-bottom:14px;">
+      <div class="lbl">Aperçu du fichier</div>
+      <div id="export-preview"></div>
+    </div>
+    <button id="btn-export-json" class="btn-primary" style="padding:14px 0; font-size:14px; font-weight:800; background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 0 24px rgba(99,102,241,0.2);">
+      💾 Télécharger le bulletin JSON
+    </button>
+    <div style="font-size:11px; color:#334155; text-align:center; margin-top:10px;" id="export-filename"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ─── Données ───────────────────────────────────────────────
+const MATIERES = [
+  { id:"math",    nom:"Mathématiques",  coef:6, emoji:"📐" },
+  { id:"pc",      nom:"Physique-Chimie",coef:6, emoji:"⚗️"  },
+  { id:"svt",     nom:"SVT",            coef:3, emoji:"🧬"  },
+  { id:"anglais", nom:"Anglais",        coef:2, emoji:"🌍"  },
+  { id:"hg",      nom:"Histoire-Géo",  coef:2, emoji:"🗺️"  },
+  { id:"ec",      nom:"EC",             coef:2, emoji:"💹"  },
+  { id:"fr",      nom:"Français",       coef:3, emoji:"📖"  },
+  { id:"eps",     nom:"EPS",            coef:2, emoji:"⚽"  },
+  { id:"philo",   nom:"Philosophie",    coef:2, emoji:"🧠"  },
+];
+const COEF_TOTAL = MATIERES.reduce((s,m) => s+m.coef, 0); // 28
+
+// ─── État ─────────────────────────────────────────────────
+let notes     = {};   // { mathId: { n1:"", n2:"", direct:"" } }
+let inputMode = {};   // { mathId: "n1n2" | "direct" }
+let objectif  = 12;
+let historique= [];
+let currentTab= "notes";
+
+// ─── Helpers ──────────────────────────────────────────────
+const color = (moy) => {
+  if (moy === null || moy === undefined) return "#64748b";
+  if (moy >= 16) return "#10b981";
+  if (moy >= 14) return "#3b82f6";
+  if (moy >= 12) return "#8b5cf6";
+  if (moy >= 10) return "#f59e0b";
+  return "#ef4444";
+};
+const mention = (moy) => {
+  if (moy === null || moy === undefined) return "—";
+  if (moy >= 16) return "Très Bien";
+  if (moy >= 14) return "Bien";
+  if (moy >= 12) return "Assez Bien";
+  if (moy >= 10) return "Passable";
+  return "Insuffisant";
+};
+const pNote = (v) => { const n=parseFloat(v); return (isNaN(n)||n<0||n>20)?null:n; };
+const getMode = (id) => inputMode[id] || "n1n2";
+
+const moyM = (id) => {
+  const n = notes[id] || {}, mode = getMode(id);
+  if (mode === "direct") return pNote(n.direct ?? "");
+  const n1=pNote(n.n1??""), n2=pNote(n.n2??"");
+  if (n1!==null && n2!==null) return (n1+n2)/2;
+  if (n1!==null) return n1;
+  if (n2!==null) return n2;
+  return null;
+};
+
+const moyGen = () => {
+  let s=0, c=0;
+  MATIERES.forEach(m => { const x=moyM(m.id); if(x!==null){ s+=x*m.coef; c+=m.coef; } });
+  return c>0 ? s/c : null;
+};
+
+const calcHistoMoy = (notesObj) => {
+  let s=0,c=0;
+  MATIERES.forEach(m => { if(notesObj[m.id]!==undefined){ s+=notesObj[m.id]*m.coef; c+=m.coef; } });
+  return c>0 ? s/c : null;
+};
+
+// ─── Compteur animé ───────────────────────────────────────
+let prevMoy = null;
+function animateValue(el, from, to, duration=750, callback) {
+  const start = performance.now();
+  const step = (now) => {
+    const p = Math.min((now-start)/duration, 1);
+    const e = 1 - Math.pow(1-p, 3);
+    const v = from + (to-from)*e;
+    if (callback) callback(v);
+    else el.textContent = v.toFixed(2);
+    if (p < 1) requestAnimationFrame(step);
+    else { if(callback) callback(to); else el.textContent = to.toFixed(2); }
+  };
+  requestAnimationFrame(step);
+}
+
+// ─── Mise à jour globale ──────────────────────────────────
+function updateAll() {
+  const mg = moyGen();
+  const c  = color(mg);
+
+  // Carte moyenne
+  const moyCard = document.getElementById("moy-card");
+  const moyVal  = document.getElementById("moy-value");
+  const moyMen  = document.getElementById("moy-mention");
+  moyCard.style.borderColor = c + "44";
+  moyCard.style.boxShadow   = `0 0 60px ${c}14`;
+  moyMen.textContent = mention(mg);
+  moyMen.style.color = c;
+
+  const from = prevMoy ?? 0;
+  if (mg !== null) {
+    animateValue(null, from, mg, 750, v => {
+      moyVal.textContent = v.toFixed(2);
+      moyVal.style.color = color(v);
+    });
+  } else {
+    moyVal.textContent = "—";
+    moyVal.style.color = "#64748b";
+  }
+  prevMoy = mg;
+
+  // Objectif status
+  const status = document.getElementById("objectif-status");
+  if (mg !== null) {
+    if (mg >= objectif) { status.textContent = "✅ Objectif atteint !"; status.style.color = "#10b981"; }
+    else { status.textContent = `📉 ${(objectif-mg).toFixed(2)} pts manquants`; status.style.color = "#ef4444"; }
+  } else { status.textContent = ""; }
+
+  // Sticky bar
+  updateStickyBar(mg, c);
+
+  // Onglets actifs
+  if (currentTab === "analyse") renderAnalyse();
+  if (currentTab === "export")  renderExportPreview();
+
+  // Cards notes (juste les valeurs)
+  MATIERES.forEach(m => {
+    const moy = moyM(m.id);
+    const moyEl  = document.getElementById(`moy-${m.id}`);
+    const pondEl = document.getElementById(`pond-${m.id}`);
+    const card   = document.getElementById(`card-${m.id}`);
+    if (!moyEl) return;
+    moyEl.textContent = moy !== null ? moy.toFixed(1) : "—";
+    moyEl.style.color = color(moy);
+    if (pondEl) {
+      if (moy !== null) {
+        pondEl.innerHTML = `${moy.toFixed(1)} × ${m.coef} = <span style="color:${color(moy)};font-weight:700;">${(moy*m.coef).toFixed(1)} pts</span>`;
+        pondEl.style.display = "block";
+      } else { pondEl.style.display = "none"; }
+    }
+    if (card) {
+      card.style.borderColor = moy !== null ? color(moy)+"44" : "#1e293b";
+      card.style.boxShadow   = moy !== null ? `0 0 16px ${color(moy)}0d` : "none";
+    }
+  });
+}
+
+// ─── Sticky bar ───────────────────────────────────────────
+function updateStickyBar(mg, c) {
+  const fill   = document.getElementById("sticky-bar-fill");
+  const val    = document.getElementById("sticky-bar-value");
+  const marker = document.getElementById("sticky-bar-marker");
+  const bar    = document.getElementById("sticky-bar");
+  bar.style.borderBottomColor = c + "33";
+  fill.style.width      = mg !== null ? `${(mg/20)*100}%` : "0%";
+  fill.style.background = `linear-gradient(90deg, ${c}99, ${c})`;
+  fill.style.boxShadow  = `0 0 8px ${c}66`;
+  val.textContent = mg !== null ? mg.toFixed(2) : "—";
+  val.style.color = c;
+  marker.style.left = `${(objectif/20)*100}%`;
+}
+
+window.addEventListener("scroll", () => {
+  const bar = document.getElementById("sticky-bar");
+  bar.classList.toggle("visible", window.scrollY > 160);
+}, { passive: true });
+
+// ─── Rendu onglet Notes ───────────────────────────────────
+function renderNotes() {
+  const wrap = document.getElementById("tab-notes");
+  wrap.innerHTML = "";
+  MATIERES.forEach((m, i) => {
+    const moy  = moyM(m.id);
+    const mode = getMode(m.id);
+    const n    = notes[m.id] || {};
+    const div  = document.createElement("div");
+    div.className = "matiere-card card-enter";
+    div.id = `card-${m.id}`;
+    div.style.animationDelay = `${i*42}ms`;
+    div.style.borderColor = moy !== null ? color(moy)+"44" : "#1e293b";
+    div.style.boxShadow   = moy !== null ? `0 0 16px ${color(moy)}0d` : "none";
+
+    const inputsHTML = mode === "n1n2"
+      ? `<div class="notes-inputs">
+          <div class="note-field"><div class="note-label">Note 1</div><input class="inp note-inp" type="number" min="0" max="20" step="0.5" placeholder="—" value="${n.n1||""}" data-id="${m.id}" data-key="n1"/></div>
+          <div class="note-field"><div class="note-label">Note 2</div><input class="inp note-inp" type="number" min="0" max="20" step="0.5" placeholder="—" value="${n.n2||""}" data-id="${m.id}" data-key="n2"/></div>
+        </div>`
+      : `<div><div class="note-label">Moyenne directe</div><input class="inp note-inp" type="number" min="0" max="20" step="0.5" placeholder="—" value="${n.direct||""}" data-id="${m.id}" data-key="direct"/></div>`;
+
+    div.innerHTML = `
+      <div class="matiere-top">
+        <div class="matiere-info">
+          <span class="matiere-emoji">${m.emoji}</span>
+          <div>
+            <div class="matiere-nom">${m.nom}</div>
+            <div class="matiere-coef">Coef ${m.coef}</div>
+          </div>
+        </div>
+        <div class="matiere-right">
+          <button class="toggle-btn" data-id="${m.id}">${mode==="n1n2"?"→ Directe":"→ N1/N2"}</button>
+          <div class="matiere-moy pop-in" id="moy-${m.id}" style="color:${color(moy)}">${moy!==null?moy.toFixed(1):"—"}</div>
+          <div class="matiere-pond" id="pond-${m.id}" style="display:${moy!==null?"block":"none"}">
+            ${moy!==null?`${moy.toFixed(1)} × ${m.coef} = <span style="color:${color(moy)};font-weight:700;">${(moy*m.coef).toFixed(1)} pts</span>`:""}
+          </div>
+        </div>
+      </div>
+      ${inputsHTML}
+    `;
+    wrap.appendChild(div);
+  });
+
+  // Events
+  wrap.querySelectorAll(".note-inp").forEach(inp => {
+    inp.addEventListener("input", e => {
+      const { id, key } = e.target.dataset;
+      if (!notes[id]) notes[id] = {};
+      notes[id][key] = e.target.value;
+      updateAll();
+    });
+  });
+  wrap.querySelectorAll(".toggle-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const id = e.target.dataset.id;
+      inputMode[id] = getMode(id) === "n1n2" ? "direct" : "n1n2";
+      renderNotes();
+      updateAll();
+    });
+  });
+}
+
+// ─── Rendu onglet Analyse ─────────────────────────────────
+function renderAnalyse() {
+  renderChart();
+  renderContrib();
+  renderPointsFortsFaibles();
+  document.getElementById("chart-obj-label").textContent = `Objectif (${objectif}/20)`;
+}
+
+function renderChart() {
+  const wrap = document.getElementById("chart-wrap");
+  wrap.innerHTML = "";
+  const maxH = 128;
+  MATIERES.forEach((m, i) => {
+    const moy = moyM(m.id);
+    const c   = color(moy);
+    const col = document.createElement("div");
+    col.className = "bar-col";
+    col.innerHTML = `
+      <div class="bar-val">${moy!==null?moy.toFixed(1):""}</div>
+      <div class="bar-container" style="height:${maxH}px;">
+        <div class="bar-objectif-line" style="bottom:${(objectif/20)*maxH}px;"></div>
+        <div class="bar-fill" id="bar-${m.id}" style="height:0; background:linear-gradient(to top,${c}ee,${c}44); border:${moy!==null?`1px solid ${c}77`:"none"}; box-shadow:${moy!==null?`0 0 10px ${c}33`:"none"};"></div>
+      </div>
+      <div class="bar-emoji">${m.emoji}</div>
+    `;
+    wrap.appendChild(col);
+    // Animate after paint
+    setTimeout(() => {
+      const el = document.getElementById(`bar-${m.id}`);
+      if (el) el.style.height = moy!==null ? `${(moy/20)*maxH}px` : "0px";
+    }, 80 + i*38);
+  });
+}
+
+function renderContrib() {
+  const wrap = document.getElementById("contrib-list");
+  wrap.innerHTML = "";
+  MATIERES.forEach((m, i) => {
+    const moy  = moyM(m.id);
+    const contrib = moy !== null ? (moy * m.coef) / COEF_TOTAL : null;
+    const pct  = contrib !== null ? (contrib / (20 * m.coef / COEF_TOTAL)) * 100 : 0;
+    const c    = color(moy);
+    const row  = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:center; gap:10px; margin-bottom:10px;";
+    row.innerHTML = `
+      <span style="font-size:15px;">${m.emoji}</span>
+      <div style="flex:1;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+          <span style="font-size:11px; color:#94a3b8;">${m.nom}</span>
+          <span style="font-size:11px; color:${c}; font-weight:700;">${contrib!==null?"+"+contrib.toFixed(2):"—"}</span>
+        </div>
+        <div class="contrib-bar-track">
+          <div class="contrib-bar-fill" id="cb-${m.id}" style="background:linear-gradient(90deg,${c}99,${c}); box-shadow:0 0 6px ${c}55;"></div>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(row);
+    setTimeout(() => {
+      const el = document.getElementById(`cb-${m.id}`);
+      if (el) el.style.width = `${pct}%`;
+    }, 100 + i*55);
+  });
+}
+
+function renderPointsFortsFaibles() {
+  const sorted = MATIERES
+    .map(m => ({ ...m, moy: moyM(m.id) }))
+    .filter(m => m.moy !== null)
+    .sort((a,b) => b.moy - a.moy);
+  const forts   = sorted.slice(0, 2);
+  const faibles = sorted.slice(-2).reverse();
+
+  const renderList = (items, elId, c) => {
+    const el = document.getElementById(elId);
+    if (!items.length) { el.innerHTML = `<div style="font-size:11px; color:#334155;">Saisir des notes</div>`; return; }
+    el.innerHTML = items.map(p =>
+      `<div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+        <span style="font-size:11px; color:#94a3b8;">${p.emoji} ${p.nom}</span>
+        <span style="font-size:12px; color:${c}; font-weight:700;">${p.moy.toFixed(1)}</span>
+      </div>`
+    ).join("");
+  };
+  renderList(forts,   "points-forts",   "#10b981");
+  renderList(faibles, "points-faibles", "#ef4444");
+}
+
+// ─── Historique ───────────────────────────────────────────
+function renderHistoInputs() {
+  const wrap = document.getElementById("histo-inputs");
+  wrap.innerHTML = MATIERES.map(m =>
+    `<div>
+      <div style="font-size:10px; color:#64748b; margin-bottom:3px;">${m.emoji} ${m.nom}</div>
+      <input class="inp histo-note-inp" type="number" min="0" max="20" step="0.5" placeholder="/20" data-id="${m.id}" style="padding:6px 8px; font-size:12px;" />
+    </div>`
+  ).join("");
+}
+
+function renderHistoList() {
+  const listEl = document.getElementById("histo-list");
+  const evolEl = document.getElementById("histo-chart-section");
+  const evolChart = document.getElementById("histo-evol");
+
+  listEl.innerHTML = "";
+  if (!historique.length) { evolEl.style.display = "none"; return; }
+
+  historique.forEach((t, i) => {
+    const c = color(t.moy);
+    const div = document.createElement("div");
+    div.className = "histo-card card-enter";
+    div.style.animationDelay = `${i*55}ms`;
+    div.innerHTML = `
+      <div>
+        <div style="font-size:13px; font-weight:600; color:#e2e8f0;">${t.label}</div>
+        <div style="font-size:10px; color:#64748b; margin-top:2px;">${Object.keys(t.notes).length} matières</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:22px; font-weight:800; color:${c}; font-family:'Syne',sans-serif;">${t.moy!==null?t.moy.toFixed(2):"—"}</div>
+        <div style="font-size:10px; color:${c};">${mention(t.moy)}</div>
+      </div>
+      <button data-idx="${i}" style="background:none; border:none; color:#ef4444; font-size:16px; margin-left:10px; padding:4px;">✕</button>
+    `;
+    div.querySelector("button").addEventListener("click", e => {
+      historique.splice(parseInt(e.target.dataset.idx), 1);
+      renderHistoList();
+    });
+    listEl.appendChild(div);
+  });
+
+  // Évolution chart
+  evolEl.style.display = "block";
+  evolChart.innerHTML = historique.map(t => {
+    const c = color(t.moy);
+    const h = t.moy !== null ? (t.moy/20)*70 : 0;
+    return `
+      <div class="histo-col">
+        <div style="font-size:10px; color:#94a3b8;">${t.moy!==null?t.moy.toFixed(1):"—"}</div>
+        <div style="width:100%; height:${h}px; background:linear-gradient(to top,${c}cc,${c}44); border-radius:4px 4px 0 0; border:1px solid ${c}55; transition:height 0.5s;"></div>
+        <div style="font-size:9px; color:#475569; text-align:center; max-width:52px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.label}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+document.getElementById("btn-add-histo").addEventListener("click", () => {
+  const label = document.getElementById("histo-label").value.trim();
+  if (!label) return;
+  const notesValides = {};
+  document.querySelectorAll(".histo-note-inp").forEach(inp => {
+    const n = pNote(inp.value);
+    if (n !== null) notesValides[inp.dataset.id] = n;
+  });
+  const moy = calcHistoMoy(notesValides);
+  historique.push({ label, notes: notesValides, moy });
+  document.getElementById("histo-label").value = "";
+  document.querySelectorAll(".histo-note-inp").forEach(i => i.value = "");
+  renderHistoList();
+});
+
+// ─── Export ───────────────────────────────────────────────
+function renderExportPreview() {
+  const mg  = moyGen();
+  const nom = (document.getElementById("export-nom")?.value || "").trim();
+  const matSaisies = MATIERES.filter(m => moyM(m.id) !== null).length;
+  document.getElementById("export-preview").innerHTML = `
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-size:12px; color:#64748b;">👤 Élève</span><span style="font-size:12px; color:#e2e8f0; font-weight:600;">${nom||"Non renseigné"}</span></div>
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-size:12px; color:#64748b;">📅 Date</span><span style="font-size:12px; color:#e2e8f0; font-weight:600;">${new Date().toLocaleDateString("fr-FR")}</span></div>
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-size:12px; color:#64748b;">📚 Matières saisies</span><span style="font-size:12px; color:#e2e8f0; font-weight:600;">${matSaisies} / ${MATIERES.length}</span></div>
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-size:12px; color:#64748b;">🎯 Moyenne générale</span><span style="font-size:12px; color:${color(mg)}; font-weight:700;">${mg!==null?mg.toFixed(2)+"/20":"—"}</span></div>
+    <div style="display:flex; justify-content:space-between;"><span style="font-size:12px; color:#64748b;">🕐 Trimestres</span><span style="font-size:12px; color:#e2e8f0; font-weight:600;">${historique.length}</span></div>
+  `;
+  const nomFile = (nom || "eleve").toLowerCase().replace(/\s+/g,"_");
+  document.getElementById("export-filename").innerHTML = `Fichier : <span style="color:rgba(99,102,241,0.5);">bulletin_${nomFile}_date.json</span>`;
+}
+
+document.getElementById("export-nom").addEventListener("input", renderExportPreview);
+
+document.getElementById("btn-export-json").addEventListener("click", () => {
+  const mg  = moyGen();
+  const nom = (document.getElementById("export-nom").value || "").trim();
+  const sorted = MATIERES.map(m => ({ ...m, moy: moyM(m.id) })).filter(m=>m.moy!==null).sort((a,b)=>b.moy-a.moy);
+  const data = {
+    nom: nom || "Élève",
+    date: new Date().toLocaleDateString("fr-FR"),
+    objectif,
+    matieres: MATIERES.map(m => ({
+      id:m.id, nom:m.nom, coef:m.coef,
+      notes: notes[m.id]||{},
+      mode: getMode(m.id),
+      moyenne: moyM(m.id),
+      contribution: moyM(m.id)!==null ? parseFloat(((moyM(m.id)*m.coef)/COEF_TOTAL).toFixed(3)) : null,
+    })),
+    moyenneGenerale: mg!==null ? parseFloat(mg.toFixed(2)) : null,
+    mention: mention(mg),
+    objectifAtteint: mg!==null ? mg>=objectif : null,
+    pointsForts:  sorted.slice(0,2).map(p=>({nom:p.nom,moyenne:p.moy})),
+    pointsFaibles:sorted.slice(-2).reverse().map(p=>({nom:p.nom,moyenne:p.moy})),
+    historique,
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  const nomF = (nom||"eleve").toLowerCase().replace(/\s+/g,"_");
+  a.href = url;
+  a.download = `bulletin_${nomF}_${new Date().toLocaleDateString("fr-FR").replace(/\//g,"-")}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  const btn = document.getElementById("btn-export-json");
+  btn.textContent = "✅ Fichier téléchargé !";
+  btn.style.background = "linear-gradient(135deg,#10b981,#059669)";
+  setTimeout(() => { btn.textContent = "💾 Télécharger le bulletin JSON"; btn.style.background = "linear-gradient(135deg,#6366f1,#8b5cf6)"; }, 2500);
+});
+
+document.getElementById("btn-copy").addEventListener("click", () => {
+  const mg = moyGen();
+  const sorted = MATIERES.map(m=>({...m,moy:moyM(m.id)})).filter(m=>m.moy!==null).sort((a,b)=>b.moy-a.moy);
+  const lines = ["📊 BULLETIN DE NOTES","═══════════════════════",""];
+  MATIERES.forEach(m => { const moy=moyM(m.id); lines.push(`${m.emoji} ${m.nom} (coef ${m.coef}) : ${moy!==null?moy.toFixed(2)+"/20":"—"}`); });
+  lines.push("","═══════════════════════",`🎯 MOYENNE GÉNÉRALE : ${mg!==null?mg.toFixed(2)+"/20":"—"}`,`   ${mention(mg)}`);
+  if(sorted.slice(0,2).length) lines.push(`\n💪 Points forts : ${sorted.slice(0,2).map(p=>p.nom).join(", ")}`);
+  if(sorted.slice(-2).length)  lines.push(`⚠️  Points faibles : ${sorted.slice(-2).reverse().map(p=>p.nom).join(", ")}`);
+  navigator.clipboard.writeText(lines.join("\n")).then(() => {
+    const btn = document.getElementById("btn-copy");
+    btn.textContent = "✅ Copié !"; btn.style.background = "linear-gradient(135deg,#10b981,#059669)";
+    setTimeout(() => { btn.textContent = "📋 Exporter le résumé texte"; btn.style.background = "linear-gradient(135deg,#1e293b,#334155)"; }, 2000);
+  });
+});
+
+// ─── Onglets ──────────────────────────────────────────────
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => { c.classList.remove("active","tab-enter"); });
+    btn.classList.add("active");
+    const el = document.getElementById(`tab-${currentTab}`);
+    el.classList.add("active");
+    void el.offsetWidth; // force reflow for animation
+    el.classList.add("tab-enter");
+    if (currentTab === "analyse")    { renderAnalyse(); }
+    if (currentTab === "historique") { renderHistoInputs(); renderHistoList(); }
+    if (currentTab === "export")     { renderExportPreview(); }
+  });
+});
+
+// ─── Objectif ─────────────────────────────────────────────
+document.getElementById("objectif-range").addEventListener("input", e => {
+  objectif = parseFloat(e.target.value);
+  document.getElementById("objectif-display").textContent = objectif;
+  updateAll();
+  if (currentTab === "analyse") renderAnalyse();
+});
+
+// ─── Init ─────────────────────────────────────────────────
+renderNotes();
+renderHistoInputs();
+renderExportPreview();
+updateAll();
+</script>
+</body>
+</html>
